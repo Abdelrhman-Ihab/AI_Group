@@ -14,7 +14,7 @@ def heuristic(arr):
                 one_radius_score += one_radius(arr,i,j)#returns score of one radius
                 two_radius_score += two_radius(arr,i,j)#returns score of two radius
                 #no need for 3 radius as thats end winning state
-    return one_radius_score ,two_radius_score# can multiple two_radius_score by some value
+    return one_radius_score + two_radius_score# can multiple two_radius_score by some value
 
 
 def bound_check(arr,i,j):
