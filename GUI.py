@@ -1,13 +1,23 @@
 import pygame
 import numpy as np
 import random
+import time 
+import math
+
+infinity = math.inf
+
+ROWS = 6
+COLS = 7
+
+P1_piece = 1
+P2_piece = 2
 
 from AI_agent import AI_Agent
 
 class GUI:
     def __init__(self):
         pygame.init()
-        self.ai_agent = AI_Agent()
+        self.ai_agent = AI_Agent(ROWS, COLS)
         info = pygame.display.Info()
         width, height = info.current_w, info.current_h
         self.screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN | pygame.SCALED)
