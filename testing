@@ -1,0 +1,127 @@
+import time
+
+ROWS, COLS = 6, 7
+WIN = 4
+
+# Bitboard representation: one int per player
+# bottom-left cell = bit 0, column-major order
+
+class BitBoard:
+    def __init__(self):
+        self.mask = 0      # all occupied cells
+        self.board1 = 0    # player 1 bitboard
+        self.board2 = 0    # player 2 bitboard
+    def copy(self):
+        c = BitBoard()
+        c.mask = self.mask
+        c.board1 = self.board1
+        c.board2 = self.board2
+        return c
+    
+    def make_move(self, col, player):
+        base = col * ROWS  # starting bit index of the column (bottom)
+        # find lowest empty row
+        for r in range(ROWS):
+            bit = base + r
+            if not (self.mask & (1 << bit)):   # this cell empty?
+                
+                # place piece
+                self.mask |= (1 << bit)
+                
+                if player == 1:
+                    self.board1 |= (1 << bit)
+                else:
+                    self.board2 |= (1 << bit)
+                
+                return  # move done
+
+    # Any place a window of 4 exists:
+    directions = [
+        (1, 0),   # horizontal
+        (0, 1),   # vertical
+        (1, 1),   # diag up-right
+        (1, -1),  # diag down-right
+    ]
+    def count_windows(self, player):
+        board = self.board1 if player == 1 else self.board2
+        opp   = self.board2 if player == 1 else self.board1
+
+        count2 = 0
+        count3 = 0
+        count4 = 0
+
+        for col in range(COLS):
+            for row in range(ROWS):
+                start_bit = col * ROWS + row
+
+                for dc, dr in self.directions:
+                    cells = []
+                    ok = True
+
+                    for k in range(4):
+                        cc = col + dc * k
+                        rr = row + dr * k
+                        if cc < 0 or cc >= COLS or rr < 0 or rr >= ROWS:
+                            ok = False
+                            break
+                        bit_index = cc * ROWS + rr
+                        cells.append(bit_index)
+
+                    if not ok:
+                        continue
+
+                    # Count how many player bits and opponent bits in window.
+                    p = sum((board >> b) & 1 for b in cells)
+                    q = sum((opp   >> b) & 1 for b in cells)
+
+                    if q > 0:
+                        continue  # blocked window
+
+                    if p == 4: count4 += 1
+                    elif p == 3: count3 += 1
+                    elif p == 2: count2 += 1
+
+        return count2, count3, count4
+
+    def heuristic(self, player,
+                  C2=10, C3=50, C4=10000):
+        twos, threes, fours = self.count_windows(player)
+        return C2 * twos + C3 * threes + C4 * fours
+
+    def possible_moves(self):
+        moves = []
+        for col in range(COLS):
+            top_bit = col * ROWS + (ROWS - 1)  # the highest row in this column
+            if not (self.mask & (1 << top_bit)):
+                moves.append(col)
+        return moves
+
+    
+# Simple depth-limited recursive search
+def search(board, depth, player):
+    
+    if depth == 0:
+        return board.heuristic(player)
+    moves = board.possible_moves()
+    if not moves:
+        return 0
+    best = -float('inf')
+    for m in moves:
+        new_board = board.copy()
+        new_board.make_move(m, player)
+        val = -search(new_board, depth-1, 3-player)
+        best = max(best, val)
+    return best
+
+# -----------------------
+# Run test at depth 7
+# -----------------------
+
+start = time.time()
+
+game = BitBoard()
+score = search(game, 6, 1)
+
+end = time.time()
+print("Heuristic score at depth 7:", score)
+print("Time taken:", end - start, "seconds")

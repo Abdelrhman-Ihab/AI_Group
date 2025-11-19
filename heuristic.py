@@ -1,20 +1,33 @@
+import random
+import time
 import numpy as np
-
 
 rows,cols = (6,7)
 
 
-
 def heuristic(arr,player):
-    one_radius_score = 0
-    two_radius_score = 0
+    score_radius_of_player_one = [0,0,0]
+    score_radius_of_player_two = [0,0,0]
     for i in range(rows):
         for j in range(cols):
-            if arr[i][j] == player :#my piece is here
-                one_radius_score += one_radius(arr,i,j,player)#returns score of one radius
-                two_radius_score += two_radius(arr,i,j,player)#returns score of two radius
-                #no need for 3 radius as thats end winning state
-    return one_radius_score + two_radius_score# can multiple two_radius_score by some value
+            if arr[i][j] == 1 :#my piece is here
+                temp_window = radius_window(arr,i,j,1)
+                for k in range(3):
+                    score_radius_of_player_one[k] += temp_window[k]
+            elif arr[i][j] == 2:
+                temp_window = radius_window(arr,i,j,2)
+                for k in range(3):
+                    score_radius_of_player_two[k] += temp_window[k]
+    reward_constants = [20,400,10000]# one_radius , two_radius, three_radius 
+    score = 0
+    for i in range(3):
+        score+= reward_constants[i] * (score_radius_of_player_one[i]- score_radius_of_player_two[i])
+    if player == 1:
+        return score
+    elif player == 2:
+        return -score
+    
+    
 
 
 def bound_check(arr,i,j,player):
@@ -27,33 +40,33 @@ def bound_check(arr,i,j,player):
     else:
         return 0
 
-def one_radius(arr,i,j,player):
-    count = 0
+def radius_window(arr,i,j,player):
+    count= [0,0,0]
     spaces = [[0,1],[1,1],[1,0],[1,-1]]#right right_down down left_down
     for space in spaces:
         if bound_check(arr,i+space[0],j+space[1],player):
-            count+= 1
-    return count
-        
-def two_radius(arr,i,j,player):
-    count = 0
-    spaces = [[0,1],[1,1],[1,0],[1,-1]]
-    #spaces = [[[0,1],[0,2]],[[1,1],[2,2]],[[1,0],[2,0]],[[0,-1],[0,-2]]]
-    for space in spaces:
-        if bound_check(arr,i+space[0],j+space[1],player) and bound_check(arr,i+2*space[0],j+2*space[1],player):
-            count+=1
+            count[0]+= 1
+            if bound_check(arr,i+2*space[0],j+2*space[1],player):
+                count[1]+= 1
+                if bound_check(arr,i+3*space[0],j+3*space[1],player):
+                    count[2]+=1
     return count
 
-#can combine one_radius and two_radius into one function
+board = np.zeros((rows, cols), dtype=np.int8)
 
 
-temp = [[0]*cols]*rows
+runs = 823543
 
-arr = np.zeros((rows,cols))
-arr[0][0] = 1
-arr[0][1] = 1
-arr[0][2] = 1 
-arr[0][3] = 1
-arr[1][2] = 1
-print(arr)
-print(heuristic(arr,1))
+boards = [np.random.randint(0, 3, size=(rows, cols), dtype=np.int8)
+          for _ in range(runs)]
+
+start = time.time()
+
+for board in boards:
+    heuristic(board,1)
+
+end = time.time()
+
+print("Total time:", end - start, "seconds")
+print("Average per board:", (end - start) / runs, "seconds")
+
